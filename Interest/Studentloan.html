@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Student Loan Calculator</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+:root{
+  --bg:#f5f7fb;
+  --card:#ffffff;
+  --primary:#2563eb;
+  --text:#0f172a;
+  --muted:#64748b;
+  --border:#e5e7eb;
+  --radius:16px;
+  --shadow:0 14px 36px rgba(0,0,0,.08);
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:Inter,system-ui,Arial;
+  background:var(--bg);
+  color:var(--text);
+}
+h1{text-align:center;color:var(--primary);margin:22px 0}
+.container{max-width:1200px;margin:auto;padding:16px}
+.grid{display:grid;grid-template-columns:380px 1fr;gap:28px}
+
+.card{
+  background:var(--card);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  padding:24px;
+}
+
+.section{margin-bottom:22px}
+.section h3{color:var(--primary);margin-bottom:12px;font-size:16px}
+label{font-size:12px;color:var(--muted);display:block;margin-bottom:4px}
+input,select{
+  width:100%;
+  padding:11px;
+  border-radius:12px;
+  border:1px solid var(--border);
+  font-size:14px;
+  margin-bottom:10px;
+}
+
+button{
+  padding:14px;
+  border:none;
+  border-radius:14px;
+  font-weight:600;
+  cursor:pointer;
+}
+.primary{background:var(--primary);color:#fff}
+.secondary{background:#eef2ff;margin-top:10px}
+
+.results{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:14px;
+  margin-bottom:18px;
+}
+.result{
+  background:#f8fafc;
+  border-radius:14px;
+  padding:14px;
+  text-align:center;
+}
+.result b{font-size:18px;display:block}
+.result small{font-size:12px;color:var(--muted)}
+
+.chart-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:18px;
+  margin-bottom:18px;
+}
+.chart-box{height:260px}
+
+.table-wrap{
+  border:1px solid var(--border);
+  border-radius:14px;
+  overflow:hidden;
+}
+.table-body{
+  max-height:380px;
+  overflow:auto;
+}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead{background:#f1f5f9;position:sticky;top:0}
+th,td{
+  padding:8px;
+  border-bottom:1px solid var(--border);
+  text-align:right;
+}
+th:first-child,td:first-child{text-align:center}
+
+@media(max-width:900px){
+  .grid{grid-template-columns:1fr}
+  .results{grid-template-columns:repeat(2,1fr)}
+  .chart-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+
+<body>
+<h1>🎓 Student Loan Calculator</h1>
+
+<div class="container">
+<div class="grid">
+
+<!-- LEFT -->
+<div class="card">
+
+  <div class="section">
+    <h3>Currency</h3>
+    <select id="currency">
+      <option value="USD">USD ($)</option>
+      <option value="EUR">EUR (€)</option>
+      <option value="GBP">GBP (£)</option>
+      <option value="INR">INR (₹)</option>
+    </select>
+  </div>
+
+  <div class="section">
+    <h3>Loan Details</h3>
+    <label>Loan Amount</label>
+    <input id="amount" value="30000">
+
+    <label>Interest Rate (APR %)</label>
+    <input id="rate" value="5">
+
+    <label>Loan Term (Years)</label>
+    <input id="years" value="10">
+
+    <label>Grace Period (Months)</label>
+    <input id="grace" value="6">
+
+    <label>
+      <input type="checkbox" id="capitalize" checked>
+      Capitalize Interest After Grace
+    </label>
+
+    <label>Extra Monthly Payment</label>
+    <input id="extra" value="0">
+  </div>
+
+  <button class="primary" onclick="calculate()">Calculate Loan</button>
+  <button class="secondary" onclick="location.reload()">Reset</button>
+
+</div>
+
+<!-- RIGHT -->
+<div class="card">
+
+  <div class="results">
+    <div class="result"><b id="mPay">–</b><small>Monthly Payment</small></div>
+    <div class="result"><b id="tInt">–</b><small>Total Interest</small></div>
+    <div class="result"><b id="tCost">–</b><small>Total Cost</small></div>
+    <div class="result"><b id="pMonth">–</b><small>Payoff Month</small></div>
+  </div>
+
+  <div class="chart-grid">
+    <div class="chart-box"><canvas id="pie"></canvas></div>
+    <div class="chart-box"><canvas id="line"></canvas></div>
+  </div>
+
+  <h3>Amortization Schedule</h3>
+  <div class="table-wrap">
+    <div class="table-body">
+      <table>
+        <thead>
+          <tr>
+            <th>Month</th>
+            <th>Payment</th>
+            <th>Interest</th>
+            <th>Principal</th>
+            <th>Balance</th>
+          </tr>
+        </thead>
+        <tbody id="table"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+</div>
+</div>
+
+<script>
+let pieChart,lineChart;
+
+function fmt(n){
+  const c=document.getElementById("currency").value;
+  return new Intl.NumberFormat("en-US",{style:"currency",currency:c}).format(n);
+}
+
+function calculate(){
+let P=+amount.value;
+let r=(+rate.value/100)/12;
+let years=+years.value;
+let grace=+grace.value;
+let extra=+extra.value;
+let cap=capitalize.checked;
+
+let balance=P;
+let totalInterest=0;
+let rows="",balances=[],labels=[];
+let month=0;
+
+/* Grace Period */
+for(let i=0;i<grace;i++){
+  let interest=balance*r;
+  totalInterest+=interest;
+  if(cap) balance+=interest;
+}
+
+/* EMI Calculation */
+let n=years*12;
+let emi=(balance*r)/(1-Math.pow(1+r,-n));
+
+/* Repayment Loop */
+while(balance>0 && month<1000){
+  month++;
+  let interest=balance*r;
+  let payment=Math.min(emi+extra,balance+interest);
+  let principal=payment-interest;
+  balance=Math.max(0,balance-principal);
+
+  totalInterest+=interest;
+  balances.push(balance);
+  labels.push("M"+month);
+
+  rows+=`
+  <tr>
+    <td>${month}</td>
+    <td>${fmt(payment)}</td>
+    <td>${fmt(interest)}</td>
+    <td>${fmt(principal)}</td>
+    <td>${fmt(balance)}</td>
+  </tr>`;
+}
+
+mPay.textContent=fmt(emi+extra);
+tInt.textContent=fmt(totalInterest);
+tCost.textContent=fmt(P+totalInterest);
+pMonth.textContent="Month "+month;
+table.innerHTML=rows;
+
+/* Charts */
+pieChart?.destroy();
+lineChart?.destroy();
+
+pieChart=new Chart(pie,{
+  type:"pie",
+  data:{
+    labels:["Principal","Interest"],
+    datasets:[{
+      data:[P,totalInterest],
+      backgroundColor:["#2563eb","#ef4444"]
+    }]
+  }
+});
+
+lineChart=new Chart(line,{
+  type:"line",
+  data:{
+    labels,
+    datasets:[{
+      label:"Remaining Balance",
+      data:balances,
+      borderColor:"#2563eb",
+      tension:.3
+    }]
+  },
+  options:{maintainAspectRatio:false}
+});
+}
+
+calculate();
+</script>
+</body>
+</html>
