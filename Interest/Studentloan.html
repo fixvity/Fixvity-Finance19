@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Student Loan Calculator</title>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
@@ -24,59 +25,103 @@ body{
   background:var(--bg);
   color:var(--text);
 }
-h1{text-align:center;color:var(--primary);margin:22px 0}
+h1{text-align:center;color:var(--primary);margin:24px 0}
+
 .container{max-width:1200px;margin:auto;padding:16px}
 .grid{display:grid;grid-template-columns:380px 1fr;gap:28px}
+
 .card{
   background:var(--card);
   border-radius:var(--radius);
   box-shadow:var(--shadow);
   padding:24px;
 }
-.section{margin-bottom:22px}
+
+.section{margin-bottom:24px}
 .section h3{margin-bottom:12px;color:var(--primary)}
-label{font-size:12px;color:var(--muted);display:block;margin-bottom:4px}
+
+label{
+  font-size:12px;
+  color:var(--muted);
+  display:block;
+  margin-bottom:4px;
+}
+
 input,select{
-  width:100%;padding:11px;border-radius:12px;
-  border:1px solid var(--border);font-size:14px;margin-bottom:10px
+  width:100%;
+  padding:12px;
+  border-radius:12px;
+  border:1px solid var(--border);
+  font-size:14px;
+  margin-bottom:10px;
 }
+
 button{
-  padding:14px;border:none;border-radius:14px;
-  font-weight:600;cursor:pointer
+  padding:14px;
+  border:none;
+  border-radius:14px;
+  font-weight:600;
+  cursor:pointer;
 }
+
 .primary{background:var(--primary);color:#fff}
-.secondary{background:#eef2ff;margin-top:10px}
+.secondary{background:#eef2ff;margin-left:8px}
 
 .results{
   display:grid;
   grid-template-columns:repeat(4,1fr);
-  gap:14px;margin-bottom:18px
+  gap:14px;
+  margin-bottom:18px;
 }
+
 .result{
-  background:#f8fafc;border-radius:14px;
-  padding:14px;text-align:center
+  background:#f8fafc;
+  border-radius:14px;
+  padding:14px;
+  text-align:center;
 }
-.result b{display:block;font-size:18px}
-.result small{color:var(--muted);font-size:12px}
+
+.result b{font-size:18px;display:block}
+.result small{font-size:12px;color:var(--muted)}
 
 .chart-grid{
   display:grid;
   grid-template-columns:1fr 1fr;
-  gap:18px;margin-bottom:18px
+  gap:18px;
+  margin-bottom:18px;
 }
+
 .chart-box{height:260px}
 
 .table-wrap{
   border:1px solid var(--border);
-  border-radius:14px;overflow:hidden
+  border-radius:14px;
+  overflow:hidden;
 }
-.table-body{max-height:360px;overflow:auto}
-table{width:100%;border-collapse:collapse;font-size:13px}
-thead{background:#f1f5f9;position:sticky;top:0}
+
+.table-body{
+  max-height:380px;
+  overflow:auto;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:13px;
+}
+
+thead{
+  background:#f1f5f9;
+  position:sticky;
+  top:0;
+}
+
 th,td{
-  padding:8px;border-bottom:1px solid var(--border);
-  text-align:right
+  padding:8px;
+  border-bottom:1px solid var(--border);
+  text-align:right;
 }
+
 th:first-child,td:first-child{text-align:center}
 
 @media(max-width:900px){
@@ -95,6 +140,7 @@ th:first-child,td:first-child{text-align:center}
 
 <!-- LEFT -->
 <div class="card">
+
   <div class="section">
     <h3>Currency</h3>
     <select id="currency">
@@ -107,17 +153,18 @@ th:first-child,td:first-child{text-align:center}
 
   <div class="section">
     <h3>Loan Details</h3>
-    <label>Loan Balance</label>
-    <input id="loan" value="30000">
+
+    <label>Loan Amount</label>
+    <input id="loanAmount" type="number" value="30000">
 
     <label>Interest Rate (APR %)</label>
-    <input id="rate" value="6.8">
+    <input id="interestRate" type="number" step="0.01" value="6.8">
 
     <label>Loan Term (Years)</label>
-    <input id="years" value="10">
+    <input id="loanYears" type="number" value="10">
 
     <label>Grace Period (Months)</label>
-    <input id="grace" value="6">
+    <input id="graceMonths" type="number" value="6">
 
     <label>
       <input type="checkbox" id="capitalize" checked>
@@ -125,26 +172,27 @@ th:first-child,td:first-child{text-align:center}
     </label>
 
     <label>Extra Monthly Payment</label>
-    <input id="extra" value="0">
+    <input id="extraPayment" type="number" value="0">
   </div>
 
   <button class="primary" onclick="calculate()">Calculate Loan</button>
   <button class="secondary" onclick="location.reload()">Reset</button>
+
 </div>
 
 <!-- RIGHT -->
 <div class="card">
 
   <div class="results">
-    <div class="result"><b id="mp">–</b><small>Monthly Payment</small></div>
-    <div class="result"><b id="ti">–</b><small>Total Interest</small></div>
-    <div class="result"><b id="tc">–</b><small>Total Payment</small></div>
-    <div class="result"><b id="pm">–</b><small>Payoff Time</small></div>
+    <div class="result"><b id="monthlyPayment">–</b><small>Monthly Payment</small></div>
+    <div class="result"><b id="totalInterest">–</b><small>Total Interest</small></div>
+    <div class="result"><b id="totalCost">–</b><small>Total Payment</small></div>
+    <div class="result"><b id="payoffTime">–</b><small>Payoff Time</small></div>
   </div>
 
   <div class="chart-grid">
-    <div class="chart-box"><canvas id="pie"></canvas></div>
-    <div class="chart-box"><canvas id="line"></canvas></div>
+    <div class="chart-box"><canvas id="pieChart"></canvas></div>
+    <div class="chart-box"><canvas id="lineChart"></canvas></div>
   </div>
 
   <h3>Amortization Schedule</h3>
@@ -160,7 +208,7 @@ th:first-child,td:first-child{text-align:center}
             <th>Balance</th>
           </tr>
         </thead>
-        <tbody id="table"></tbody>
+        <tbody id="amortTable"></tbody>
       </table>
     </div>
   </div>
@@ -172,69 +220,87 @@ th:first-child,td:first-child{text-align:center}
 <script>
 let pieChart,lineChart;
 
-function fmt(n){
-  const c=document.getElementById("currency").value;
-  return new Intl.NumberFormat("en-US",{style:"currency",currency:c}).format(n);
+function money(val){
+  const cur=document.getElementById("currency").value;
+  return new Intl.NumberFormat("en-US",{style:"currency",currency:cur}).format(val);
 }
 
 function calculate(){
-  let P=+loan.value;
-  let r=(+rate.value/100)/12;
-  let n=+years.value*12;
-  let grace=+grace.value;
-  let extra=+extra.value;
+  const loan=+document.getElementById("loanAmount").value;
+  const apr=+document.getElementById("interestRate").value/100/12;
+  const years=+document.getElementById("loanYears").value;
+  const grace=+document.getElementById("graceMonths").value;
+  const extra=+document.getElementById("extraPayment").value;
+  const capitalize=document.getElementById("capitalize").checked;
 
-  // Grace interest
-  let graceInterest=P*r*grace;
-  if(capitalize.checked) P+=graceInterest;
+  let principal=loan;
+  let graceInterest=principal*apr*grace;
 
-  let emi=P*r/(1-Math.pow(1+r,-n));
-  let bal=P,totalInt=graceInterest,rows="",balances=[],labels=[];
-  let m=0;
+  if(capitalize) principal+=graceInterest;
 
-  while(bal>0 && m<1000){
-    m++;
-    let interest=bal*r;
-    let pay=Math.min(emi+extra,bal+interest);
-    let principal=pay-interest;
-    bal=Math.max(0,bal-principal);
+  const n=years*12;
+  const emi=principal*apr/(1-Math.pow(1+apr,-n));
 
-    totalInt+=interest;
-    balances.push(bal);
-    labels.push("M"+m);
+  let balance=principal;
+  let totalInterest=graceInterest;
+  let month=0;
+  let rows="",balances=[],labels=[];
+
+  while(balance>0 && month<1000){
+    month++;
+    let interest=balance*apr;
+    let payment=Math.min(emi+extra,balance+interest);
+    let principalPaid=payment-interest;
+    balance=Math.max(0,balance-principalPaid);
+
+    totalInterest+=interest;
+
+    balances.push(balance);
+    labels.push("M"+month);
 
     rows+=`
       <tr>
-        <td>${m}</td>
-        <td>${fmt(pay)}</td>
-        <td>${fmt(interest)}</td>
-        <td>${fmt(principal)}</td>
-        <td>${fmt(bal)}</td>
+        <td>${month}</td>
+        <td>${money(payment)}</td>
+        <td>${money(interest)}</td>
+        <td>${money(principalPaid)}</td>
+        <td>${money(balance)}</td>
       </tr>`;
   }
 
-  mp.textContent=fmt(emi+extra);
-  ti.textContent=fmt(totalInt);
-  tc.textContent=fmt(P+totalInt);
-  pm.textContent=Math.floor(m/12)+" yrs "+(m%12)+" mo";
+  document.getElementById("monthlyPayment").textContent=money(emi+extra);
+  document.getElementById("totalInterest").textContent=money(totalInterest);
+  document.getElementById("totalCost").textContent=money(principal+totalInterest);
+  document.getElementById("payoffTime").textContent=
+    Math.floor(month/12)+" yrs "+(month%12)+" mo";
 
-  table.innerHTML=rows;
+  document.getElementById("amortTable").innerHTML=rows;
 
   pieChart?.destroy();
   lineChart?.destroy();
 
-  pieChart=new Chart(pie,{
+  pieChart=new Chart(document.getElementById("pieChart"),{
     type:"pie",
-    data:{labels:["Principal","Interest"],
-    datasets:[{data:[P,totalInt],backgroundColor:["#2563eb","#ef4444"]}]}
+    data:{
+      labels:["Principal","Interest"],
+      datasets:[{
+        data:[principal,totalInterest],
+        backgroundColor:["#2563eb","#ef4444"]
+      }]
+    }
   });
 
-  lineChart=new Chart(line,{
+  lineChart=new Chart(document.getElementById("lineChart"),{
     type:"line",
-    data:{labels,datasets:[{
-      label:"Remaining Balance",
-      data:balances,borderColor:"#2563eb",tension:.3
-    }]},
+    data:{
+      labels,
+      datasets:[{
+        label:"Remaining Balance",
+        data:balances,
+        borderColor:"#2563eb",
+        tension:.3
+      }]
+    },
     options:{maintainAspectRatio:false}
   });
 }
