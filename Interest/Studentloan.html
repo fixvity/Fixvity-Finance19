@@ -25,20 +25,41 @@ body{
   background:var(--bg);
   color:var(--text);
 }
-h1{text-align:center;color:var(--primary);margin:22px 0}
-.container{max-width:1200px;margin:auto;padding:16px}
-.grid{display:grid;grid-template-columns:380px 1fr;gap:28px}
-
+h1{
+  text-align:center;
+  color:var(--primary);
+  margin:22px 0;
+}
+.container{
+  max-width:1200px;
+  margin:auto;
+  padding:16px;
+}
+.grid{
+  display:grid;
+  grid-template-columns:380px 1fr;
+  gap:28px;
+}
 .card{
   background:var(--card);
   border-radius:var(--radius);
   box-shadow:var(--shadow);
   padding:24px;
 }
-
-.section{margin-bottom:22px}
-.section h3{color:var(--primary);margin-bottom:12px;font-size:16px}
-label{font-size:12px;color:var(--muted);display:block;margin-bottom:4px}
+.section{
+  margin-bottom:22px;
+}
+.section h3{
+  margin:0 0 12px;
+  color:var(--primary);
+  font-size:16px;
+}
+label{
+  font-size:12px;
+  color:var(--muted);
+  display:block;
+  margin-bottom:4px;
+}
 input,select{
   width:100%;
   padding:11px;
@@ -47,7 +68,12 @@ input,select{
   font-size:14px;
   margin-bottom:10px;
 }
-
+.checkbox{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-size:13px;
+}
 button{
   padding:14px;
   border:none;
@@ -64,14 +90,20 @@ button{
   gap:14px;
   margin-bottom:18px;
 }
-.result{
+.result-box{
   background:#f8fafc;
   border-radius:14px;
   padding:14px;
   text-align:center;
 }
-.result b{font-size:18px;display:block}
-.result small{font-size:12px;color:var(--muted)}
+.result-box b{
+  font-size:18px;
+  display:block;
+}
+.result-box small{
+  font-size:12px;
+  color:var(--muted);
+}
 
 .chart-grid{
   display:grid;
@@ -87,11 +119,19 @@ button{
   overflow:hidden;
 }
 .table-body{
-  max-height:380px;
+  max-height:360px;
   overflow:auto;
 }
-table{width:100%;border-collapse:collapse;font-size:13px}
-thead{background:#f1f5f9;position:sticky;top:0}
+table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:13px;
+}
+thead{
+  background:#f1f5f9;
+  position:sticky;
+  top:0;
+}
 th,td{
   padding:8px;
   border-bottom:1px solid var(--border);
@@ -140,10 +180,10 @@ th:first-child,td:first-child{text-align:center}
     <label>Grace Period (Months)</label>
     <input id="grace" value="6">
 
-    <label>
+    <div class="checkbox">
       <input type="checkbox" id="capitalize" checked>
-      Capitalize Interest After Grace
-    </label>
+      <label for="capitalize">Capitalize interest after grace</label>
+    </div>
 
     <label>Extra Monthly Payment</label>
     <input id="extra" value="0">
@@ -158,10 +198,10 @@ th:first-child,td:first-child{text-align:center}
 <div class="card">
 
   <div class="results">
-    <div class="result"><b id="mPay">–</b><small>Monthly Payment</small></div>
-    <div class="result"><b id="tInt">–</b><small>Total Interest</small></div>
-    <div class="result"><b id="tCost">–</b><small>Total Cost</small></div>
-    <div class="result"><b id="pMonth">–</b><small>Payoff Month</small></div>
+    <div class="result-box"><b id="mPay">–</b><small>Monthly Payment</small></div>
+    <div class="result-box"><b id="tInt">–</b><small>Total Interest</small></div>
+    <div class="result-box"><b id="tCost">–</b><small>Total Cost</small></div>
+    <div class="result-box"><b id="payoff">–</b><small>Payoff Month</small></div>
   </div>
 
   <div class="chart-grid">
@@ -195,90 +235,97 @@ th:first-child,td:first-child{text-align:center}
 let pieChart,lineChart;
 
 function fmt(n){
-  const c=document.getElementById("currency").value;
-  return new Intl.NumberFormat("en-US",{style:"currency",currency:c}).format(n);
+  return new Intl.NumberFormat("en-US",{
+    style:"currency",
+    currency:currency.value
+  }).format(n);
 }
 
 function calculate(){
-let P=+amount.value;
-let r=(+rate.value/100)/12;
-let years=+years.value;
-let grace=+grace.value;
-let extra=+extra.value;
-let cap=capitalize.checked;
+  let P=+amount.value;
+  let r=(+rate.value/100)/12;
+  let months=(+years.value)*12;
+  let grace=+grace.value;
+  let extra=+extra.value;
+  let cap=capitalize.checked;
 
-let balance=P;
-let totalInterest=0;
-let rows="",balances=[],labels=[];
-let month=0;
+  let balance=P,totalInterest=0;
+  let rows="",balances=[],labels=[];
+  let month=0;
 
-/* Grace Period */
-for(let i=0;i<grace;i++){
-  let interest=balance*r;
-  totalInterest+=interest;
-  if(cap) balance+=interest;
-}
+  // Grace period
+  for(let g=0;g<grace;g++){
+    let interest=balance*r;
+    totalInterest+=interest;
+    if(cap) balance+=interest;
 
-/* EMI Calculation */
-let n=years*12;
-let emi=(balance*r)/(1-Math.pow(1+r,-n));
-
-/* Repayment Loop */
-while(balance>0 && month<1000){
-  month++;
-  let interest=balance*r;
-  let payment=Math.min(emi+extra,balance+interest);
-  let principal=payment-interest;
-  balance=Math.max(0,balance-principal);
-
-  totalInterest+=interest;
-  balances.push(balance);
-  labels.push("M"+month);
-
-  rows+=`
-  <tr>
-    <td>${month}</td>
-    <td>${fmt(payment)}</td>
-    <td>${fmt(interest)}</td>
-    <td>${fmt(principal)}</td>
-    <td>${fmt(balance)}</td>
-  </tr>`;
-}
-
-mPay.textContent=fmt(emi+extra);
-tInt.textContent=fmt(totalInterest);
-tCost.textContent=fmt(P+totalInterest);
-pMonth.textContent="Month "+month;
-table.innerHTML=rows;
-
-/* Charts */
-pieChart?.destroy();
-lineChart?.destroy();
-
-pieChart=new Chart(pie,{
-  type:"pie",
-  data:{
-    labels:["Principal","Interest"],
-    datasets:[{
-      data:[P,totalInterest],
-      backgroundColor:["#2563eb","#ef4444"]
-    }]
+    month++;
+    balances.push(balance);
+    labels.push("M"+month);
+    rows+=`<tr>
+      <td>${month}</td>
+      <td>${fmt(0)}</td>
+      <td>${fmt(interest)}</td>
+      <td>${fmt(0)}</td>
+      <td>${fmt(balance)}</td>
+    </tr>`;
   }
-});
 
-lineChart=new Chart(line,{
-  type:"line",
-  data:{
-    labels,
-    datasets:[{
-      label:"Remaining Balance",
-      data:balances,
-      borderColor:"#2563eb",
-      tension:.3
-    }]
-  },
-  options:{maintainAspectRatio:false}
-});
+  let emi=(balance*r)/(1-Math.pow(1+r,-months));
+
+  while(balance>0 && month<1000){
+    month++;
+    let interest=balance*r;
+    let payment=Math.min(emi+extra,balance+interest);
+    let principal=payment-interest;
+    balance=Math.max(0,balance-principal);
+
+    totalInterest+=interest;
+    balances.push(balance);
+    labels.push("M"+month);
+
+    rows+=`<tr>
+      <td>${month}</td>
+      <td>${fmt(payment)}</td>
+      <td>${fmt(interest)}</td>
+      <td>${fmt(principal)}</td>
+      <td>${fmt(balance)}</td>
+    </tr>`;
+  }
+
+  mPay.textContent=fmt(emi+extra);
+  tInt.textContent=fmt(totalInterest);
+  tCost.textContent=fmt(P+totalInterest);
+  payoff.textContent="Month "+month;
+  table.innerHTML=rows;
+
+  pieChart?.destroy();
+  lineChart?.destroy();
+
+  pieChart=new Chart(pie,{
+    type:"pie",
+    data:{
+      labels:["Principal","Interest"],
+      datasets:[{
+        data:[P,totalInterest],
+        backgroundColor:["#2563eb","#ef4444"]
+      }]
+    }
+  });
+
+  lineChart=new Chart(line,{
+    type:"line",
+    data:{
+      labels,
+      datasets:[{
+        label:"Remaining Balance",
+        data:balances,
+        borderColor:"#2563eb",
+        tension:.3
+      }]
+    },
+    options:{maintainAspectRatio:false}
+  });
 }
 
 calculate();
